@@ -67,21 +67,36 @@ export function useDashboardData() {
     setSim(null)
   }, [])
 
-  // detail + local explanation for selected account
+  // detail + local explanation for selected account (non-blocking independent fetches)
   useEffect(() => {
     if (!selectedId) return
     let cancelled = false
     setExplainLoading(true)
     setExplanation(null)
-    Promise.all([api.getAccount(selectedId), api.getLocalShap(selectedId)])
-      .then(([d, x]) => {
-        if (cancelled) return
-        setDetail(d.data)
-        setExplanation(x.data)
-        setExplainLatency(x.latencyMs)
+    setDetail(null)
+
+    api.getAccount(selectedId)
+      .then((d) => {
+        if (!cancelled) setDetail(d.data)
       })
-      .catch((e) => !cancelled && setError(e.message))
-      .finally(() => !cancelled && setExplainLoading(false))
+      .catch((e) => {
+        if (!cancelled) console.error('Account detail error:', e.message)
+      })
+
+    api.getLocalShap(selectedId)
+      .then((x) => {
+        if (!cancelled) {
+          setExplanation(x.data)
+          setExplainLatency(x.latencyMs)
+        }
+      })
+      .catch((e) => {
+        if (!cancelled) console.error('Local SHAP error:', e.message)
+      })
+      .finally(() => {
+        if (!cancelled) setExplainLoading(false)
+      })
+
     return () => {
       cancelled = true
     }
