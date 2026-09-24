@@ -10,11 +10,9 @@ GLOBAL_SHAP_PATH = ARTIFACTS_DIR / "global_shap.json"
 FEATURE_META_PATH = ARTIFACTS_DIR / "feature_metadata.json"
 ACCOUNTS_CACHE_PATH = ARTIFACTS_DIR / "accounts_cache.json"
 
-API_HOST = os.environ.get("MEETMUX_HOST", "127.0.0.1")
-API_PORT = int(os.environ.get("MEETMUX_PORT", "5000"))
-CORS_ORIGINS = os.environ.get(
-    "MEETMUX_CORS", "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5174,http://127.0.0.1:5174,http://localhost:5175,http://127.0.0.1:5175"
-).split(",")
+API_HOST = os.environ.get("MEETMUX_HOST", "0.0.0.0")
+API_PORT = int(os.environ.get("PORT", os.environ.get("MEETMUX_PORT", "5000")))
+CORS_ORIGINS = os.environ.get("MEETMUX_CORS", "*").split(",")
 
 MODEL_VERSION = "1.0.0"
 
