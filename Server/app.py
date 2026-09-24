@@ -1,4 +1,10 @@
-"""ChurnMux Explainable Churn API — Flask application factory."""
+import sys
+from pathlib import Path
+
+# Ensure Server/ directory is in sys.path when running from repository root
+SERVER_DIR = Path(__file__).resolve().parent
+if str(SERVER_DIR) not in sys.path:
+    sys.path.insert(0, str(SERVER_DIR))
 
 from flask import Flask, jsonify
 from flask_cors import CORS
