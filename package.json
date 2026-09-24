@@ -1,0 +1,22 @@
+{
+  "name": "meetmux",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Explainable Customer Churn Prediction Engine with SHAP Force-Plot Dashboard",
+  "scripts": {
+    "start": "node run_all.js",
+    "dev": "node run_all.js",
+    "server": "uv run python Server/app.py",
+    "client": "npm --prefix Client run dev"
+  },
+  "keywords": [
+    "lightgbm",
+    "shap",
+    "churn-prediction",
+    "explainable-ai",
+    "flask",
+    "react"
+  ],
+  "author": "Surya Pranav",
+  "license": "MIT"
+}

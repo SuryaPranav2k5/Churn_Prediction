@@ -8,6 +8,8 @@ authors = [
 ]
 requires-python = ">=3.11"
 dependencies = [
+    "flask>=3.0.0",
+    "flask-cors>=4.0.0",
     "lightgbm>=4.7.0",
     "matplotlib>=3.11.2",
     "numpy>=2.4.6",
@@ -19,9 +21,5 @@ dependencies = [
     "shap>=0.51.0",
 ]
 
-[project.scripts]
-meetmux = "meetmux:main"
-
-[build-system]
-requires = ["uv_build>=0.12.5,<0.13.0"]
-build-backend = "uv_build"
+[tool.uv]
+package = false
