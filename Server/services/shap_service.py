@@ -9,7 +9,7 @@ import json
 import joblib
 import numpy as np
 
-from config import GLOBAL_SHAP_PATH, EXPLAINER_PATH
+from config import GLOBAL_SHAP_PATH
 
 # Business grouping for the global-impact chart
 FEATURE_GROUP = {
