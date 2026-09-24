@@ -20,14 +20,7 @@ from services.shap_service import ShapService
 
 def create_app() -> Flask:
     app = Flask(__name__)
-    CORS(app, resources={r"/*": {"origins": "*"}})
-
-    @app.after_request
-    def add_cors_headers(response):
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
-        response.headers["Access-Control-Allow-Methods"] = "GET,PUT,POST,DELETE,OPTIONS"
-        return response
+    CORS(app, resources={r"/api/*": {"origins": CORS_ORIGINS}})
 
     ms = ModelService()
     app.extensions["model_service"] = ms

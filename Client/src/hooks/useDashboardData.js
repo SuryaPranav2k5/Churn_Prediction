@@ -25,25 +25,17 @@ export function useDashboardData() {
   const [sim, setSim] = useState(null)
   const [simBusy, setSimBusy] = useState(false)
 
-  // bootstrap: health / stats / global from live API
+  // bootstrap: health / stats / global
   useEffect(() => {
-    api.getHealth()
-      .then((r) => setHealth(r.data))
-      .catch((e) => {
-        setError(e.message)
-        setHealth({ status: 'down' })
-      })
-
-    api.getStats()
-      .then((r) => setStats(r.data))
-      .catch((e) => setError(e.message))
-
-    api.getGlobalShap()
-      .then((r) => setGlobalShap(r.data))
-      .catch((e) => setError(e.message))
+    api.getHealth().then((r) => setHealth(r.data)).catch((e) => {
+      setError(e.message)
+      setHealth({ status: 'down' })
+    })
+    api.getStats().then((r) => setStats(r.data)).catch((e) => setError(e.message))
+    api.getGlobalShap().then((r) => setGlobalShap(r.data)).catch((e) => setError(e.message))
   }, [])
 
-  // accounts list — debounced query to live API
+  // accounts list — debounced server-side query
   useEffect(() => {
     let cancelled = false
     setListLoading(true)
@@ -52,33 +44,22 @@ export function useDashboardData() {
         .getAccounts({ risk, search, page, limit: PAGE_LIMIT })
         .then((r) => {
           if (cancelled) return
-          if (r?.data?.accounts) {
-            setAccounts(r.data.accounts)
-            setAcctMeta({ total: r.data.total || 0, pages: r.data.pages || 1 })
-            setError(null)
-          } else {
-            setAccounts([])
-          }
+          setAccounts(r.data.accounts)
+          setAcctMeta({ total: r.data.total, pages: r.data.pages })
+          setError(null)
         })
-        .catch((e) => {
-          if (!cancelled) setError(e.message)
-        })
-        .finally(() => {
-          if (!cancelled) setListLoading(false)
-        })
-    }, search ? 200 : 0)
-
+        .catch((e) => !cancelled && setError(e.message))
+        .finally(() => !cancelled && setListLoading(false))
+    }, search ? 250 : 0)
     return () => {
       cancelled = true
       clearTimeout(t)
     }
   }, [risk, search, page])
 
-  // auto-select first account once list loads
+  // auto-select the first account once the list loads for a healthy demo state
   useEffect(() => {
-    if (!selectedId && accounts.length) {
-      setSelectedId(accounts[0].account_id)
-    }
+    if (!selectedId && accounts.length) setSelectedId(accounts[0].account_id)
   }, [accounts, selectedId])
 
   const selectAccount = useCallback((id) => {
@@ -86,31 +67,31 @@ export function useDashboardData() {
     setSim(null)
   }, [])
 
-  // 100% Live account detail + live LightGBM SHAP force decomposition
+  // detail + local explanation for selected account (non-blocking independent fetches)
   useEffect(() => {
     if (!selectedId) return
     let cancelled = false
     setExplainLoading(true)
+    setExplanation(null)
+    setDetail(null)
 
-    // Live account telemetry
     api.getAccount(selectedId)
       .then((d) => {
-        if (!cancelled && d?.data) setDetail(d.data)
+        if (!cancelled) setDetail(d.data)
       })
       .catch((e) => {
-        if (!cancelled) setError(e.message)
+        if (!cancelled) console.error('Account detail error:', e.message)
       })
 
-    // Live native LightGBM TreeSHAP
     api.getLocalShap(selectedId)
       .then((x) => {
-        if (!cancelled && x?.data?.positive_forces) {
+        if (!cancelled) {
           setExplanation(x.data)
           setExplainLatency(x.latencyMs)
         }
       })
       .catch((e) => {
-        if (!cancelled) setError(e.message)
+        if (!cancelled) console.error('Local SHAP error:', e.message)
       })
       .finally(() => {
         if (!cancelled) setExplainLoading(false)
@@ -121,7 +102,6 @@ export function useDashboardData() {
     }
   }, [selectedId])
 
-  // 100% Live What-If Counterfactual simulation via POST /api/simulate
   const runSimulation = useCallback(
     async (overrides) => {
       if (!selectedId) return
@@ -129,14 +109,10 @@ export function useDashboardData() {
         setSim(null)
         return
       }
-
       setSimBusy(true)
       try {
         const r = await api.simulate({ base_account_id: selectedId, overrides })
-        if (r?.data?.simulated_probability != null) {
-          setSim(r.data)
-          setError(null)
-        }
+        setSim(r.data)
       } catch (e) {
         setError(e.message)
       } finally {
@@ -180,4 +156,3 @@ export function useDashboardData() {
     setPage,
   }
 }
-
