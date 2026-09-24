@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node run_all.js",
     "dev": "node run_all.js",
+    "build": "cd Client && npm install && npm run build",
     "server": "uv run python Server/app.py",
     "client": "npm --prefix Client run dev"
   },
