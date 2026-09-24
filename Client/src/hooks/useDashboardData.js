@@ -54,8 +54,10 @@ export function useDashboardData() {
           if (cancelled) return
           if (r?.data?.accounts) {
             setAccounts(r.data.accounts)
-            setAcctMeta({ total: r.data.total, pages: r.data.pages })
+            setAcctMeta({ total: r.data.total || 0, pages: r.data.pages || 1 })
             setError(null)
+          } else {
+            setAccounts([])
           }
         })
         .catch((e) => {
