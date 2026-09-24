@@ -54,20 +54,18 @@ def format_value(col: str, val) -> str:
 class ShapService:
     def __init__(self, model_service):
         self.ms = model_service
-        self.explainer = joblib.load(EXPLAINER_PATH)
         self.global_shap = json.loads(GLOBAL_SHAP_PATH.read_text(encoding="utf-8"))
 
     def shap_vector(self, raw: dict) -> list[float]:
-        """Positive-class SHAP contributions for one raw feature dict."""
+        """Positive-class Tree SHAP contributions using native LightGBM pred_contrib.
+        
+        LightGBM's native pred_contrib runs in <1ms, avoids cross-platform C++ 
+        serialization issues, and yields exact Tree SHAP attributions.
+        """
         X = self.ms.encode(raw)
-        sv = self.explainer.shap_values(X)
-        if isinstance(sv, list):
-            matrix = sv[1] if len(sv) > 1 else sv[0]
-        elif np.ndim(sv) == 3:
-            matrix = sv[:, :, -1]
-        else:
-            matrix = sv
-        return [float(v) for v in np.asarray(matrix)[0]]
+        contribs = self.ms.model.booster_.predict(X, pred_contrib=True)
+        # contribs has shape (1, n_features + 1), where last element is base_value
+        return [float(v) for v in contribs[0][:-1]]
 
     def decompose(self, raw: dict) -> dict:
         """Split SHAP vector into ranked positive / negative force sets."""
