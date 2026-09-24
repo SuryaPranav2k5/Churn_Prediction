@@ -13,25 +13,25 @@ export default function App() {
   const d = useDashboardData()
 
   const forceData = useMemo(() => {
-    if (d.sim && d.explanation) {
+    if (d.sim) {
       return {
-        base_value: d.explanation.base_value,
-        base_prob: d.explanation.base_prob,
+        base_value: d.explanation?.base_value ?? -1.0486,
+        base_prob: d.explanation?.base_prob ?? 0.2652,
         predicted_value: logit(d.sim.simulated_probability),
         prob: d.sim.simulated_probability,
-        positive_forces: d.sim.updated_positive_forces,
-        negative_forces: d.sim.updated_negative_forces,
+        positive_forces: d.sim.updated_positive_forces || [],
+        negative_forces: d.sim.updated_negative_forces || [],
       }
     }
     if (!d.explanation) return null
     const e = d.explanation
     return {
-      base_value: e.base_value,
-      base_prob: e.base_prob,
-      predicted_value: e.predicted_value,
+      base_value: e.base_value ?? -1.0486,
+      base_prob: e.base_prob ?? 0.2652,
+      predicted_value: e.predicted_value != null ? e.predicted_value : logit(e.churn_probability),
       prob: e.churn_probability,
-      positive_forces: e.positive_forces,
-      negative_forces: e.negative_forces,
+      positive_forces: e.positive_forces || [],
+      negative_forces: e.negative_forces || [],
     }
   }, [d.explanation, d.sim])
 
