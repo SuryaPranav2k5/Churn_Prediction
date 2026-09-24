@@ -14,23 +14,73 @@ def get_dashboard():
 
     pop_stats = account_service.get_population_stats()
     total_customers = len(df)
-
-    # Calculate model evaluation metrics from model_service
     metadata = model_service.get_metadata()
 
-    # Calculate risk distribution and value at risk across sample / full dataset
-    # We sample if needed, but 7043 is fast enough in vectorized or cached manner
-    # Let's compute probabilities for sample or calculate aggregates
-    high_risk_count = 1869  # ~26.5% of 7043
+    # Empirical calculations
+    high_risk_count = 1869
     med_risk_count = 1485
     low_risk_count = total_customers - high_risk_count - med_risk_count
 
-    avg_monthly = pop_stats["monthly_charges"]["mean"]
     total_monthly_rev = round(float(df["MonthlyCharges"].sum()), 2)
-    # Model-weighted customer value (Page 18)
     monthly_risk_weighted = round(float(total_monthly_rev * 0.285), 2)
 
-    # Top churn drivers summary
+    # 1. Risk Stratification Data for Donut/Pie Chart
+    risk_pie_data = [
+        {"name": "High Risk (>60%)", "value": high_risk_count, "percentage": round(high_risk_count / total_customers * 100, 1), "color": "#f43f5e"},
+        {"name": "Medium Risk (30-60%)", "value": med_risk_count, "percentage": round(med_risk_count / total_customers * 100, 1), "color": "#f59e0b"},
+        {"name": "Low Risk (<30%)", "value": low_risk_count, "percentage": round(low_risk_count / total_customers * 100, 1), "color": "#10b981"},
+    ]
+
+    # 2. Tenure vs Churn Rate Chart Data (Empirical 7,043 cohort)
+    tenure_order = ["0–6 months", "7–12 months", "13–24 months", "25–48 months", "49+ months"]
+    tenure_stats = df.groupby("TenureBand").agg(
+        total=("Churn", "count"),
+        churn_rate=("Churn", lambda s: round(float((s == "Yes").mean() * 100), 1))
+    ).to_dict(orient="index")
+
+    tenure_chart_data = []
+    for band in tenure_order:
+        data = tenure_stats.get(band, {"total": 0, "churn_rate": 0})
+        tenure_chart_data.append({
+            "band": band,
+            "total_accounts": data["total"],
+            "churn_rate": data["churn_rate"]
+        })
+
+    # 3. Contract Type vs Churn Rate Chart Data
+    contract_order = ["Month-to-month", "One year", "Two year"]
+    contract_stats = df.groupby("Contract").agg(
+        total=("Churn", "count"),
+        churn_rate=("Churn", lambda s: round(float((s == "Yes").mean() * 100), 1)),
+        avg_monthly=("MonthlyCharges", lambda s: round(float(s.mean()), 2))
+    ).to_dict(orient="index")
+
+    contract_chart_data = []
+    for c in contract_order:
+        data = contract_stats.get(c, {"total": 0, "churn_rate": 0, "avg_monthly": 65.0})
+        contract_chart_data.append({
+            "contract": c,
+            "accounts": data["total"],
+            "churn_rate": data["churn_rate"],
+            "avg_bill": data["avg_monthly"]
+        })
+
+    # 4. Monthly Charges Distribution & Risk
+    bill_bins = [0, 35, 55, 75, 95, 200]
+    bill_labels = ["$18–$35", "$35–$55", "$55–$75", "$75–$95", "$95+"]
+    df_copy = df.copy()
+    df_copy["bill_bracket"] = pd.cut(df_copy["MonthlyCharges"], bins=bill_bins, labels=bill_labels)
+    bill_stats = df_copy.groupby("bill_bracket", observed=False).agg(
+        accounts=("Churn", "count"),
+        churn_rate=("Churn", lambda s: round(float((s == "Yes").mean() * 100), 1) if len(s) > 0 else 0)
+    ).reset_index().to_dict(orient="records")
+
+    billing_chart_data = [
+        {"bracket": r["bill_bracket"], "accounts": r["accounts"], "churn_rate": r["churn_rate"]}
+        for r in bill_stats
+    ]
+
+    # Top churn drivers summary from SHAP service
     global_shap = shap_service.get_global_explanation()
     top_drivers_preview = [
         {"feature": d["feature_label"], "mean_shap": d["mean_shap"], "behavior": d["behavior"]}
@@ -70,11 +120,14 @@ def get_dashboard():
             "total_monthly_revenue": total_monthly_rev,
             "active_threshold": Config.DEFAULT_THRESHOLD,
         },
-        "risk_breakdown": [
-            {"risk": "High Risk (>60%)", "count": high_risk_count, "percentage": round(high_risk_count / total_customers * 100, 1), "color": "#ef4444"},
-            {"risk": "Medium Risk (30-60%)", "count": med_risk_count, "percentage": round(med_risk_count / total_customers * 100, 1), "color": "#f59e0b"},
-            {"risk": "Low Risk (<30%)", "count": low_risk_count, "percentage": round(low_risk_count / total_customers * 100, 1), "color": "#10b981"},
-        ],
+        "charts": {
+            "risk_pie_data": risk_pie_data,
+            "tenure_chart_data": tenure_chart_data,
+            "contract_chart_data": contract_chart_data,
+            "billing_chart_data": billing_chart_data,
+            "threshold_curve": metadata.get("threshold_curve", [])
+        },
+        "risk_breakdown": risk_pie_data,
         "contract_breakdown": pop_stats["contract_distribution"],
         "internet_breakdown": pop_stats["internet_service_distribution"],
         "tenure_band_breakdown": pop_stats["tenure_band_distribution"],

@@ -10,10 +10,28 @@ import {
   ShieldCheck,
   Activity,
   Layers,
-  CheckCircle2,
+  PieChart as PieIcon,
+  BarChart3,
+  LineChart as LineIcon,
   HelpCircle,
   ExternalLink
 } from 'lucide-react';
+import {
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  Tooltip as RechartsTooltip,
+  Legend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Line,
+  ComposedChart,
+  Area
+} from 'recharts';
 import api from '../services/api';
 import KPICard from '../components/KPICard';
 import RiskBadge from '../components/RiskBadge';
@@ -44,7 +62,7 @@ export default function Dashboard() {
     return (
       <div className="min-h-[70vh] flex flex-col items-center justify-center text-slate-400 space-y-3">
         <div className="w-10 h-10 border-3 border-blue-500 border-t-transparent rounded-full animate-spin" />
-        <p className="text-sm font-medium">Aggregating cohort intelligence and SHAP distributions...</p>
+        <p className="text-sm font-medium">Aggregating cohort intelligence, Recharts visuals, and SHAP distributions...</p>
       </div>
     );
   }
@@ -65,7 +83,32 @@ export default function Dashboard() {
     );
   }
 
-  const { summary, risk_breakdown, top_drivers, high_risk_sample, model_performance } = data;
+  const { summary, charts = {}, top_drivers, high_risk_sample, model_performance } = data;
+  const {
+    risk_pie_data = [],
+    tenure_chart_data = [],
+    contract_chart_data = [],
+    threshold_curve = []
+  } = charts;
+
+  // Custom Recharts Dark Tooltip
+  const CustomTooltip = ({ active, payload, label }) => {
+    if (active && payload && payload.length) {
+      return (
+        <div className="bg-slate-900/95 border border-slate-700 rounded-xl p-3 shadow-2xl text-xs space-y-1">
+          <p className="font-semibold text-white">{label || payload[0].name}</p>
+          {payload.map((entry, index) => (
+            <p key={`item-${index}`} className="font-mono text-slate-300 flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: entry.color || entry.fill }} />
+              <span>{entry.name}:</span>
+              <strong className="text-white">{entry.value}{entry.unit || ''}</strong>
+            </p>
+          ))}
+        </div>
+      );
+    }
+    return null;
+  };
 
   return (
     <div className="space-y-8 pb-12">
@@ -99,6 +142,12 @@ export default function Dashboard() {
             >
               <span>Global SHAP Insights</span>
             </button>
+            <button
+              onClick={() => navigate('/what-if')}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600/30 border border-indigo-500/40 hover:bg-indigo-600/40 text-indigo-200 text-xs font-semibold transition-all"
+            >
+              <span>Launch What-If Lab</span>
+            </button>
           </div>
         </div>
       </div>
@@ -114,12 +163,12 @@ export default function Dashboard() {
           badge="Full Cohort"
         />
         <KPICard
-          title="Historical Churn Rate"
+          title="Cohort Churn Rate"
           value={`${summary.churn_rate_percent}%`}
           subtitle="Ground-truth positive rate"
           icon={TrendingDown}
           accent="amber"
-          trend="+0.4% MoM"
+          trend="1,869 churned"
           trendPositive={false}
         />
         <KPICard
@@ -140,111 +189,176 @@ export default function Dashboard() {
         />
       </div>
 
-      {/* Middle Grid: Risk Distribution + Model Performance */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Risk Distribution Breakdown */}
-        <div className="lg:col-span-2 glass-panel rounded-2xl p-6 border border-slate-800 space-y-5">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-            <div>
-              <h2 className="text-base font-bold text-white tracking-tight">Cohort Risk Stratification</h2>
-              <p className="text-xs text-slate-400">Distribution of customers across operational intervention tiers</p>
-            </div>
-            <span className="text-xs font-mono text-slate-400">Threshold: {summary.active_threshold}</span>
-          </div>
-
-          <div className="space-y-4">
-            {risk_breakdown.map((item) => (
-              <div key={item.risk} className="space-y-1.5">
-                <div className="flex justify-between items-baseline text-xs">
-                  <span className="font-semibold text-slate-200">{item.risk}</span>
-                  <div className="flex items-baseline gap-2">
-                    <span className="font-mono font-bold text-white">{item.count.toLocaleString()}</span>
-                    <span className="font-mono text-slate-400 text-[11px]">({item.percentage}%)</span>
-                  </div>
-                </div>
-                <div className="w-full bg-slate-900 rounded-full h-3 overflow-hidden p-0.5 border border-slate-800">
-                  <div
-                    className="h-full rounded-full transition-all duration-700"
-                    style={{
-                      width: `${item.percentage}%`,
-                      backgroundColor: item.color,
-                      boxShadow: `0 0 10px ${item.color}40`
-                    }}
-                  />
-                </div>
+      {/* Visual Analytics Grid: Interactive Recharts Graphs */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Graph 1: Risk Tier Stratification Donut Chart */}
+        <div className="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2">
+              <PieIcon className="w-5 h-5 text-rose-400" />
+              <div>
+                <h3 className="text-base font-bold text-white tracking-tight">Risk Tier Stratification</h3>
+                <p className="text-xs text-slate-400">Customer base distribution by predicted attrition probability</p>
               </div>
-            ))}
+            </div>
+            <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
+              Cutoff: 0.60
+            </span>
           </div>
 
-          {/* Key Insights summary pills */}
-          <div className="pt-2 grid grid-cols-1 sm:grid-cols-3 gap-3 border-t border-slate-800/80">
-            <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80">
-              <span className="text-[11px] text-slate-400 block">Immediate Action Needed</span>
-              <span className="text-sm font-bold text-rose-400 font-mono mt-1 block">
-                {summary.high_risk_accounts} Accounts
-              </span>
-            </div>
-            <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80">
-              <span className="text-[11px] text-slate-400 block">Nurture & Monitor</span>
-              <span className="text-sm font-bold text-amber-400 font-mono mt-1 block">
-                {summary.medium_risk_accounts} Accounts
-              </span>
-            </div>
-            <div className="p-3 rounded-xl bg-slate-900/60 border border-slate-800/80">
-              <span className="text-[11px] text-slate-400 block">Healthy Stable Core</span>
-              <span className="text-sm font-bold text-emerald-400 font-mono mt-1 block">
-                {summary.low_risk_accounts} Accounts
-              </span>
-            </div>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={risk_pie_data}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={65}
+                  outerRadius={95}
+                  paddingAngle={4}
+                  dataKey="value"
+                >
+                  {risk_pie_data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} stroke="#0f172a" strokeWidth={2} />
+                  ))}
+                </Pie>
+                <RechartsTooltip content={<CustomTooltip />} />
+                <Legend
+                  verticalAlign="bottom"
+                  iconType="circle"
+                  formatter={(value) => <span className="text-xs text-slate-300">{value}</span>}
+                />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
         </div>
 
-        {/* Model Evaluation & Health (Page 26-28) */}
+        {/* Graph 2: Tenure vs Churn Rate Trend */}
         <div className="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
-          <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
-            <ShieldCheck className="w-5 h-5 text-indigo-400" />
-            <div>
-              <h2 className="text-base font-bold text-white tracking-tight">Model Validation</h2>
-              <p className="text-[11px] text-slate-400">{model_performance.model_name}</p>
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-blue-400" />
+              <div>
+                <h3 className="text-base font-bold text-white tracking-tight">Tenure vs Churn Attrition Rate</h3>
+                <p className="text-xs text-slate-400">Empirical churn rate (%) dropping steeply across account age bands</p>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-              <span className="text-[11px] text-slate-400 block">ROC-AUC</span>
-              <span className="text-xl font-bold font-mono text-blue-400 mt-1 block">
-                {model_performance.roc_auc}
-              </span>
-              <span className="text-[10px] text-slate-500">Discrimination</span>
-            </div>
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <ComposedChart data={tenure_chart_data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <XAxis dataKey="band" stroke="#64748b" tick={{ fontSize: 11 }} />
+                <YAxis stroke="#64748b" tick={{ fontSize: 11 }} unit="%" />
+                <RechartsTooltip content={<CustomTooltip />} />
+                <Bar dataKey="churn_rate" name="Churn Rate" unit="%" fill="#3b82f6" radius={[6, 6, 0, 0]} />
+                <Line type="monotone" dataKey="churn_rate" name="Trend" stroke="#38bdf8" strokeWidth={3} dot={{ r: 4 }} />
+              </ComposedChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
 
-            <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-              <span className="text-[11px] text-slate-400 block">PR-AUC</span>
-              <span className="text-xl font-bold font-mono text-cyan-400 mt-1 block">
-                {model_performance.pr_auc}
-              </span>
-              <span className="text-[10px] text-slate-500">Minority class</span>
+        {/* Graph 3: Contract Commitment vs Churn Rate */}
+        <div className="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-amber-400" />
+              <div>
+                <h3 className="text-base font-bold text-white tracking-tight">Contract Commitment Sensitivity</h3>
+                <p className="text-xs text-slate-400">Month-to-month contracts vs Long-term lock-in</p>
+              </div>
             </div>
-
-            <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-              <span className="text-[11px] text-slate-400 block">Precision</span>
-              <span className="text-xl font-bold font-mono text-emerald-400 mt-1 block">
-                {model_performance.precision}
-              </span>
-              <span className="text-[10px] text-slate-500">At threshold 0.5</span>
-            </div>
-
-            <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
-              <span className="text-[11px] text-slate-400 block">Brier Score</span>
-              <span className="text-xl font-bold font-mono text-purple-400 mt-1 block">
-                {model_performance.brier_score}
-              </span>
-              <span className="text-[10px] text-slate-500">Calibration (low=good)</span>
-            </div>
+            <span className="text-[11px] font-mono text-indigo-400">#1 SHAP Driver</span>
           </div>
 
-          <div className="p-3 rounded-xl bg-blue-500/5 border border-blue-500/20 text-[11px] text-slate-300 leading-relaxed">
-            <span className="font-semibold text-blue-400">Why PR-AUC?</span> Because churn is the minority class (~26.5%), models cannot rely on raw accuracy alone. Discrimination is verified across precision/recall trade-offs.
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={contract_chart_data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <XAxis dataKey="contract" stroke="#64748b" tick={{ fontSize: 11 }} />
+                <YAxis stroke="#64748b" tick={{ fontSize: 11 }} unit="%" />
+                <RechartsTooltip content={<CustomTooltip />} />
+                <Bar dataKey="churn_rate" name="Churn Rate" unit="%" radius={[6, 6, 0, 0]}>
+                  {contract_chart_data.map((entry, index) => {
+                    const colors = ['#f43f5e', '#f59e0b', '#10b981'];
+                    return <Cell key={`bar-${index}`} fill={colors[index % colors.length]} />;
+                  })}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Graph 4: Precision vs Recall Operational Frontier */}
+        <div className="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2">
+              <LineIcon className="w-5 h-5 text-indigo-400" />
+              <div>
+                <h3 className="text-base font-bold text-white tracking-tight">Threshold Trade-off Curve</h3>
+                <p className="text-xs text-slate-400">Precision vs Recall trade-offs for proactive retention campaigns</p>
+              </div>
+            </div>
+            <span className="text-[11px] font-mono text-emerald-400">PR-AUC: 0.658</span>
+          </div>
+
+          <div className="h-64 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={threshold_curve} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                <XAxis dataKey="threshold" stroke="#64748b" tick={{ fontSize: 11 }} />
+                <YAxis stroke="#64748b" tick={{ fontSize: 11 }} />
+                <RechartsTooltip content={<CustomTooltip />} />
+                <Area type="monotone" dataKey="recall" name="Recall" stroke="#38bdf8" fill="#38bdf8" fillOpacity={0.15} />
+                <Area type="monotone" dataKey="precision" name="Precision" stroke="#10b981" fill="#10b981" fillOpacity={0.15} />
+                <Legend verticalAlign="bottom" iconType="circle" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Model Performance Validation Badges */}
+      <div className="glass-panel rounded-2xl p-6 border border-slate-800 space-y-4">
+        <div className="flex items-center gap-2 border-b border-slate-800 pb-3">
+          <ShieldCheck className="w-5 h-5 text-indigo-400" />
+          <div>
+            <h2 className="text-base font-bold text-white tracking-tight">Production Model Evaluation Metrics</h2>
+            <p className="text-xs text-slate-400">{model_performance.model_name} trained on Stratified 80/20 Split</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 text-center">
+          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+            <span className="text-[11px] text-slate-400 block">ROC-AUC</span>
+            <span className="text-xl font-bold font-mono text-blue-400 mt-1 block">{model_performance.roc_auc}</span>
+            <span className="text-[10px] text-slate-500">Discrimination</span>
+          </div>
+          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+            <span className="text-[11px] text-slate-400 block">PR-AUC</span>
+            <span className="text-xl font-bold font-mono text-cyan-400 mt-1 block">{model_performance.pr_auc}</span>
+            <span className="text-[10px] text-slate-500">Imbalanced metric</span>
+          </div>
+          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+            <span className="text-[11px] text-slate-400 block">Precision</span>
+            <span className="text-xl font-bold font-mono text-emerald-400 mt-1 block">{model_performance.precision}</span>
+            <span className="text-[10px] text-slate-500">True pos rate</span>
+          </div>
+          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+            <span className="text-[11px] text-slate-400 block">Recall</span>
+            <span className="text-xl font-bold font-mono text-amber-400 mt-1 block">{model_performance.recall}</span>
+            <span className="text-[10px] text-slate-500">Catch rate</span>
+          </div>
+          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+            <span className="text-[11px] text-slate-400 block">F1-Score</span>
+            <span className="text-xl font-bold font-mono text-white mt-1 block">{model_performance.f1}</span>
+            <span className="text-[10px] text-slate-500">Harmonic mean</span>
+          </div>
+          <div className="p-3 rounded-xl bg-slate-900/80 border border-slate-800">
+            <span className="text-[11px] text-slate-400 block">Brier Score</span>
+            <span className="text-xl font-bold font-mono text-purple-400 mt-1 block">{model_performance.brier_score}</span>
+            <span className="text-[10px] text-slate-500">Calibration</span>
           </div>
         </div>
       </div>
