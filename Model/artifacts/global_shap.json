@@ -1,0 +1,125 @@
+{
+  "base_prob": 0.2595,
+  "features": [
+    {
+      "feature": "contract",
+      "display_name": "Contract Term",
+      "mean_abs_shap": 1.0082,
+      "type": "categorical"
+    },
+    {
+      "feature": "dependents",
+      "display_name": "Dependents",
+      "mean_abs_shap": 0.7712,
+      "type": "categorical"
+    },
+    {
+      "feature": "tenure_months",
+      "display_name": "Tenure (Months)",
+      "mean_abs_shap": 0.4596,
+      "type": "numerical"
+    },
+    {
+      "feature": "internet_service",
+      "display_name": "Internet Service",
+      "mean_abs_shap": 0.3006,
+      "type": "categorical"
+    },
+    {
+      "feature": "payment_method",
+      "display_name": "Payment Method",
+      "mean_abs_shap": 0.2108,
+      "type": "categorical"
+    },
+    {
+      "feature": "monthly_charges",
+      "display_name": "Monthly Charges ($)",
+      "mean_abs_shap": 0.199,
+      "type": "numerical"
+    },
+    {
+      "feature": "total_charges",
+      "display_name": "Total Charges ($)",
+      "mean_abs_shap": 0.1497,
+      "type": "numerical"
+    },
+    {
+      "feature": "online_security",
+      "display_name": "Online Security",
+      "mean_abs_shap": 0.1158,
+      "type": "categorical"
+    },
+    {
+      "feature": "paperless_billing",
+      "display_name": "Paperless Billing",
+      "mean_abs_shap": 0.1091,
+      "type": "categorical"
+    },
+    {
+      "feature": "streaming_movies",
+      "display_name": "Streaming Movies",
+      "mean_abs_shap": 0.1015,
+      "type": "categorical"
+    },
+    {
+      "feature": "cltv",
+      "display_name": "Customer Lifetime Value (CLTV)",
+      "mean_abs_shap": 0.0903,
+      "type": "numerical"
+    },
+    {
+      "feature": "tech_support",
+      "display_name": "Tech Support",
+      "mean_abs_shap": 0.0874,
+      "type": "categorical"
+    },
+    {
+      "feature": "multiple_lines",
+      "display_name": "Multiple Lines",
+      "mean_abs_shap": 0.08,
+      "type": "categorical"
+    },
+    {
+      "feature": "partner",
+      "display_name": "Partner",
+      "mean_abs_shap": 0.0717,
+      "type": "categorical"
+    },
+    {
+      "feature": "streaming_tv",
+      "display_name": "Streaming TV",
+      "mean_abs_shap": 0.0675,
+      "type": "categorical"
+    },
+    {
+      "feature": "phone_service",
+      "display_name": "Phone Service",
+      "mean_abs_shap": 0.0363,
+      "type": "categorical"
+    },
+    {
+      "feature": "online_backup",
+      "display_name": "Online Backup",
+      "mean_abs_shap": 0.0222,
+      "type": "categorical"
+    },
+    {
+      "feature": "gender",
+      "display_name": "Gender",
+      "mean_abs_shap": 0.0141,
+      "type": "categorical"
+    },
+    {
+      "feature": "senior_citizen",
+      "display_name": "Senior Citizen",
+      "mean_abs_shap": 0.0094,
+      "type": "categorical"
+    },
+    {
+      "feature": "device_protection",
+      "display_name": "Device Protection",
+      "mean_abs_shap": 0.0063,
+      "type": "categorical"
+    }
+  ]
+}
